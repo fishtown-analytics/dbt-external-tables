@@ -59,6 +59,64 @@ The macros assume that you:
 
 ## Spec
 
+CUE is used to model and validate the specification. The full specification is available in [spec.cue](./spec.cue).
+CUE is a popular validation library used for validating configuration files in 
+open source projects such as [Kubernetes](https://cuelang.org/docs/integrations/k8s/).
+
+
+Use CUE to validate your dbt-external-table source configuration:
+
+- [Install CUE](https://cuelang.org/docs/install/)
+- Clone dbt-external-tables
+- Validate your config using the CUE cli:
+
+```
+$ cue vet path/to/your/source/config.yml path/to/ddbt-external-tables/repo/spec.cue
+```
+
+**Why use CUE?**
+
+Suppose you have the following dbt-external-table source configuration:
+
+```
+# integration_tests/ci/spec/invalid_column_description.yml
+
+version: 2
+
+sources:
+  - name: snowplow
+    database: analytics
+    schema: snowplow_external
+    loader: S3
+    loaded_at_field: collector_tstamp
+
+    tables:
+      - name: event
+        external:
+          location: "s3://snowplow/output"
+          row_format: "serde 'org.openx.data.jsonserde.JsonSerDe'
+            with serdeproperties (
+                'strip.outer.array'='false'
+            )"
+        columns:
+          - name: app_id
+            data_type: varchar(255)
+            descripion: "Application ID"
+```
+
+Do you see the issue? There is a type-o in `description`. Since CUE encodes the 
+external table specification, it's able to validate your config before you begin executing
+dbt-external-tables:
+
+```
+$ cue vet integration_tests/ci/spec/invalid_column_description.yml spec.cue
+sources.0.tables.0.columns.0: field `descripion` not allowed:
+    ./integration_tests/ci/spec/invalid_column_description.yml:19:14
+    ./spec.cue:39:1
+    ./spec.cue:39:10
+```
+
+
 ```yml
 version: 2
 

@@ -1,0 +1,21 @@
+version: 2
+
+sources:
+  - name: snowplow
+    database: analytics
+    schema: snowplow_external
+    loader: S3
+    loaded_at_field: collector_tstamp
+
+    tables:
+      - name: event
+        external:
+          location: "s3://snowplow/output"
+          row_format: "serde 'org.openx.data.jsonserde.JsonSerDe'
+            with serdeproperties (
+                'strip.outer.array'='false'
+            )"
+        columns:
+          - name: app_id
+            data_type: varchar(255)
+            descripion: "Application ID"

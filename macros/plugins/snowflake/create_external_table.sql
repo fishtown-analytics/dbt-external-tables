@@ -3,6 +3,7 @@
     {%- set columns = source_node.columns.values() -%}
     {%- set external = source_node.external -%}
     {%- set partitions = external.partitions -%}
+    {%- set add_metadata_filename = external.get('add_metadata_filename', false) -%}
 
     {%- set is_csv = dbt_external_tables.is_csv(external.file_format) -%}
 
@@ -21,8 +22,16 @@
                 (case when is_null_value({{col_id}}) or lower({{col_id}}) = 'null' then null else {{col_id}} end)
             {%- endset %}
             {{column_quoted}} {{column.data_type}} as ({{col_expression}}::{{column.data_type}})
-            {{- ',' if not loop.last -}}
+            {%- if not loop.last -%},
+            {%- elif add_metadata_filename -%},
+            {%- else -%}
+            {%- endif -%}
         {% endfor %}
+        {%- if add_metadata_filename -%}
+            {%- set column_quoted = adapter.quote('METADATA_FILENAME') if column.quote else 'METADATA_FILENAME' %}
+            {%- set col_expression -%}METADATA$FILENAME{%- endset %}
+            {{column_quoted}} VARCHAR as ({{col_expression}}::VARCHAR)
+        {%- endif -%}
     )
     {%- endif -%}
     {% if partitions %} partition by ({{partitions|map(attribute='name')|join(', ')}}) {% endif %}

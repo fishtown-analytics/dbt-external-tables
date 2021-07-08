@@ -1,8 +1,9 @@
 {% macro sqlserver__create_external_table(source_node) %}
 
     {%- set columns = source_node.columns.values() -%}
+    {# {{ log('columns: ' ~ columns, info=True) }} #}
     {%- set external = source_node.external -%}
-
+    {{ log('external: ' ~ external, info=True) }}
     {% if external.ansi_nulls is true -%} SET ANSI_NULLS ON; {%- endif %}
     {% if external.quoted_identifier is true -%} SET QUOTED_IDENTIFIER ON; {%- endif %}
 
@@ -16,7 +17,7 @@
     )
     WITH (
         {# remove keys that are None (i.e. not defined for a given source) #}
-        {%- for key, value in external.items() if value is not none and key not in ['ansi_nulls', 'quoted_identifier'] -%}
+        {%- for key, value in external.items() if value is not none and key not in ['ansi_nulls', 'quoted_identifier', 'materialize'] -%}
             {{key}} = 
                 {%- if key in ["location", "schema_name", "object_name"] -%}
                     '{{value}}'
